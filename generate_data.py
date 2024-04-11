@@ -1,28 +1,27 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import os
 
 
 def generate_data(date, devices):
     """Generate a DataFrame with synthetic meteorological data for a specified day and devices."""
     # Generate a timestamp for every second of the specified day
-    timestamps = [date.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(seconds=i) for i in range(24*60*60)]
+    size = 24*60*60
+    n_devices = len(devices)
+    timestamps = [date.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(seconds=i) for i in range(size)]
     
-    data = []
-    for device in devices:
-        # Generate random temperature values for this device
-        temperatures = np.random.uniform(low=-10.0, high=35.0, size=len(timestamps))
-        
-        for i in range(len(timestamps)):
-            row = {
-                'timestamp': timestamps[i],
-                'x': device[0],
-                'y': device[1],
-                'temperature': temperatures[i]
-            }
-            data.append(row)
+    temperatures = np.random.uniform(low=-10.0, high=35.0, size=size*n_devices)
+    timestamps = [t for t in timestamps for d in devices]
+    xs = [device[0] for i in range(size) for device in devices]
+    ys = [device[1] for i in range(size) for device in devices]
+    df = pd.DataFrame({
+        'timestamp': timestamps,
+        'x': xs,
+        'y': ys,
+        'temperature': temperatures
+    })
     
-    df = pd.DataFrame(data)
     return df
 
 
@@ -33,7 +32,8 @@ def write_data(df, file_path, date):
 
 
 def main():
-    base_file_path = 'path_to_your_synthetic_data_file'
+    os.makedirs('synthetic_data', exist_ok=True)
+    base_file_path = 'synthetic_data/temperature'
     start_date = datetime.now()
     
     # Generate a list of 200 devices, each with a random x and y location
