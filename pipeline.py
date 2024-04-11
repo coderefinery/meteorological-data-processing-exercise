@@ -8,12 +8,14 @@ def read_data(file_path):
     return df
 
 
-def process_data(df):
-    """Process the data and return a new DataFrame."""
+def resample(df):
+    """ Resample the data to hourly frequency for coarse processing.
+    Reduces the size of the data in memory and speeds up the processing time.
+    """
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df = df.set_index('timestamp')
-    df_monthly = df.resample('ME').mean()
-    return df_monthly
+    df = df.resample('h').mean()
+    return df
 
 
 def write_data(df, file_path):
@@ -23,13 +25,14 @@ def write_data(df, file_path):
 
 def device_monthly_average(device, files):
     """Calculate the monthly average for a specific device."""
-    monthly = pd.DataFrame()
+    df = pd.DataFrame()
     for file in files:
-        df = read_data(file)
-        df = df[(df['x'] == device[0]) & (df['y'] == device[1])]
-        df = process_data(df)
-        monthly = pd.concat([monthly, df])
-    return monthly
+        daily_df = read_data(file)
+        daily_df = daily_df[(daily_df['x'] == device[0]) & (daily_df['y'] == device[1])]
+        daily_df = resample(daily_df)
+        df = pd.concat([df, daily_df])
+    df = df.resample('ME').mean()
+    return df
 
 
 def main():
@@ -45,7 +48,7 @@ def main():
     devices = df[['x', 'y']].drop_duplicates().values.tolist()
 
     print(f"Found {len(devices)} devices.")
-    
+
     for device in devices:
         monthly = device_monthly_average(device, files)
         write_data(monthly, output_file_path)
